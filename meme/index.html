@@ -420,13 +420,7 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
     <script>
-        const base = {
-            chainId: 8453,
-            chainName: 'Base',
-            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-            rpcUrls: ['https://mainnet.base.org'],
-            blockExplorerUrls: ['https://basescan.org']
-        };
+        const base = { chainId: 8453, chainName: 'Base', nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://mainnet.base.org'], blockExplorerUrls: ['https://basescan.org'] };
         const luisaSwapAddress = "0x7107507EEc13ee860E80007B8087B092ad0f07B5";
         const luisaSwapAbi = [
             {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
@@ -442,11 +436,14 @@
             {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"userInfo","outputs":[{"internalType":"address","name":"lowMemeCoin","type":"address"},{"internalType":"address","name":"midMemeCoin","type":"address"},{"internalType":"address","name":"highMemeCoin","type":"address"},{"internalType":"address","name":"lowPair","type":"address"},{"internalType":"address","name":"midPair","type":"address"},{"internalType":"address","name":"highPair","type":"address"},{"internalType":"uint256","name":"lowLiquidity","type":"uint256"},{"internalType":"uint256","name":"midLiquidity","type":"uint256"},{"internalType":"uint256","name":"highLiquidity","type":"uint256"}],"stateMutability":"view","type":"function"}
         ];
         let web3, account, luisaSwapContract;
-
         const luisaMessages = {
             connectStart: ["Ooh, let’s dive in! Connecting to Base—hold my hand, sweetie!","Hey, darling! Unlocking your wallet for some Base fun!","Excited? I’m linking us to Base—stay with me!","Oh, let’s sparkle! Connecting your wallet now, love!"],
             connectSuccess: ["Yay! We’re in, gorgeous! Time to shine on Base!","Wow, connected, darling! Ready to deploy meme coins!","Splendid! Wallet’s linked—let’s create some fun!","Fantastic, sweetie! We’re set to explore Base together!"],
             connectFail: ["Oh no, darling! Wallet slipped away—try again, please!","Oopsie! No wallet vibe—let’s retry, my dear!","Hmm, a glitch! Let’s reconnect with a smile, love!","Yikes! Wallet’s shy—give it another go, sweetie!"],
+            walletDisconnected: ["Oh no, darling! Wallet disconnected—please reconnect to Base!","Oopsie! You’re offline, love—let’s get back to Base!","Sweetie, wallet’s gone—connect again to shine on Base!","Yikes! Wallet slipped away—reconnect to Base, dear!"],
+            accountChanged: (address) => [`Ooh, new vibe! Switched to ${address.slice(0, 6)}...${address.slice(-4)} on Base, darling!`,`Hey, love! Now using ${address.slice(0, 6)}...${address.slice(-4)} on Base—let’s shine!`,`Splendid! Changed to ${address.slice(0, 6)}...${address.slice(-4)} on Base, sweetie!`,`Wow, new account ${address.slice(0, 6)}...${address.slice(-4)} on Base—you’re dazzling, dear!`],
+            chainChangedWrong: ["Ooh, wrong chain, darling! Please switch back to Base!","Hey, love! We’re not on Base—let’s get back, sweetie!","Sweetie, wrong network! Switch to Base to shine!","Yikes! Not on Base—please return to the right chain, dear!"],
+            chainChangedCorrect: ["Yay! Back on Base, darling—let’s sparkle together!","Ooh, we’re home on Base, love! Ready to shine!","Splendid! Back to Base, sweetie—time to dazzle!","Wow, Base again, dear! Let’s make magic happen!"],
             deployStart: ["Ooh, deploying your meme coin—let’s make it sparkle!","Hey, love! Creating your coin—hold on tight!","Excited? I’m crafting your meme coin now, sweetie!","Let’s shine! Deploying your coin on Base, darling!"],
             deploySuccess: (symbol) => [`Yay! ${symbol} is live on Base—ready to glow, darling?`,`Ooh, ${symbol} deployed on Base! Let’s sparkle, love!`,`Splendid! ${symbol} is yours on Base—time to shine, sweetie!`,`Wow, ${symbol} is here on Base! You’re dazzling, dear!`],
             deployFail: ["Oh no, darling! Deployment failed on Base—try again, please!","Oopsie! Coin creation slipped on Base—retry, love!","Hmm, a hiccup on Base! Let’s deploy again, sweetie!","Yikes! Deployment didn’t work on Base—let’s retry, dear!"],
@@ -455,9 +452,10 @@
             liquidityFail: ["Oh no, darling! Liquidity failed on Base—try again, please!","Oopsie! Pooling didn’t work on Base—retry, love!","Hmm, a glitch on Base! Let’s add liquidity again, sweetie!","Yikes! Liquidity slipped on Base—let’s retry, dear!"],
             claimStart: ["Ooh, claiming your fees on Base—let’s fetch them, darling!","Hey, love! Grabbing your fees on Base—hold on!","Excited? I’m claiming your fees on Base, sweetie!","Let’s shine! Fetching your fees on Base now, dear!"],
             claimSuccess: ["Yay! Fees claimed on Base—you’re a Base diva, darling!","Ooh, fees collected on Base! Let’s sparkle, love!","Splendid! Fees are yours on Base—enjoy, sweetie!","Wow, fees claimed on Base! You’re amazing, dear!"],
-            claimFail: ["Oh no, darling! Claim failed on Base—try again, please!","Oopsie! Fees slipped on Base—retry, love!","Hmm, a hiccup on Base! Let’s claim again, sweetie!","Yikes! Claim didn’t work on Base—let’s retry, dear!"]
+            claimFail: ["Oh no, darling! Claim failed on Base—try again, please!","Oopsie! Fees slipped on Base—retry, love!","Hmm, a hiccup on Base! Let’s claim again, sweetie!","Yikes! Claim didn’t work on Base—let’s retry, dear!"],
+            userDenied: ["Oh no, darling! You dodged me on Base—approve next time, please!","Oopsie! No action today on Base? Let’s try again, love!","Hmm, rejected on Base? Give me a chance next time, sweetie!","Yikes! You said no on Base—let’s sparkle later, dear!"],
+            inputMissing: ["Hey, darling! Missing name or symbol—fill them in!","Ooh, sweetie! I need a name and symbol to work with!","Love, let’s add a name and symbol to deploy!","Oopsie! Fill in the token details, dear!"]
         };
-
         function getRandomMessage(type, param1) {
             const messages = luisaMessages[type];
             if (typeof messages === 'function') {
@@ -466,17 +464,14 @@
             }
             return messages[Math.floor(Math.random() * messages.length)];
         }
-
         function shortenAddress(address) {
             if (!address || address === '0x0000000000000000000000000000000000000000') return 'N/A';
             return `${address.slice(0, 6)}...${address.slice(-4)}`;
         }
-
         function copyToClipboard(elementId) {
             const text = document.getElementById(elementId).getAttribute('data-full-address') || document.getElementById(elementId).textContent;
             navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
             setupWalletListeners();
@@ -488,15 +483,12 @@
             document.getElementById('highName').addEventListener('input', updateDeployButtonState);
             document.getElementById('highSymbol').addEventListener('input', updateDeployButtonState);
         });
-
         async function connectWallet() {
-            const status = document.getElementById('networkStatus');
             const connectButton = document.getElementById('connectWalletButton');
             const luisaMessage = document.getElementById('luisaMessage');
             try {
                 if (!window.ethereum) throw new Error("No wallet detected.");
                 connectButton.disabled = true;
-                status.innerText = "Connecting...";
                 luisaMessage.innerText = getRandomMessage('connectStart');
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -506,41 +498,42 @@
                 luisaSwapContract = new web3.eth.Contract(luisaSwapAbi, luisaSwapAddress);
                 const chainId = await web3.eth.getChainId();
                 if (Number(chainId) !== 8453) throw new Error("Failed to switch to Base.");
-                updateUIAfterConnect();
+                connectButton.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                luisaMessage.innerText = getRandomMessage('connectSuccess');
                 await updateUserInfo();
             } catch (error) {
-                status.innerText = "Failed: " + error.message;
-                luisaMessage.innerText = getRandomMessage('connectFail');
-                resetUI();
-            } finally {
                 connectButton.disabled = false;
+                connectButton.textContent = "Connect Wallet";
+                luisaMessage.innerText = getRandomMessage('connectFail');
             }
         }
-
         async function switchToBase() {
-            try {
-                const chainId = await web3.eth.getChainId();
-                if (Number(chainId) !== 8453) {
-                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: "0x2115" }] }).catch(async (switchError) => {
-                        if (switchError.code === 4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [base] });
-                        else throw switchError;
-                    });
+            const chainId = await web3.eth.getChainId();
+            if (Number(chainId) !== 8453) {
+                try {
+                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: "0x2115" }] });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [base] });
+                    } else {
+                        throw switchError;
+                    }
                 }
-            } catch (error) {
-                throw new Error("Network switch failed: " + error.message);
             }
         }
-
-        function updateUIAfterConnect() {
-            document.getElementById('connectWalletButton').textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
-            document.getElementById('networkStatus').innerText = "Connected to Base";
-            document.getElementById('luisaMessage').innerText = getRandomMessage('connectSuccess');
-            updateDeployButtonState();
+        function updateDeployButtonState() {
+            const lowName = document.getElementById('lowName').value.trim();
+            const lowSymbol = document.getElementById('lowSymbol').value.trim();
+            const midName = document.getElementById('midName').value.trim();
+            const midSymbol = document.getElementById('midSymbol').value.trim();
+            const highName = document.getElementById('highName').value.trim();
+            const highSymbol = document.getElementById('highSymbol').value.trim();
+            document.getElementById('deployLowButton').disabled = !web3 || !account || !lowName || !lowSymbol;
+            document.getElementById('deployMidButton').disabled = !web3 || !account || !midName || !midSymbol;
+            document.getElementById('deployHighButton').disabled = !web3 || !account || !highName || !highSymbol;
         }
-
         function resetUI() {
             document.getElementById('connectWalletButton').textContent = "Connect Wallet";
-            document.getElementById('networkStatus').innerText = "Click to connect...";
             document.getElementById('deployLowButton').disabled = true;
             document.getElementById('deployMidButton').disabled = true;
             document.getElementById('deployHighButton').disabled = true;
@@ -572,16 +565,17 @@
             document.getElementById('copyMidFeesButton').disabled = true;
             document.getElementById('copyHighFeesButton').disabled = true;
         }
-
         function setupWalletListeners() {
             if (!window.ethereum) return;
             window.ethereum.on('accountsChanged', async (newAccounts) => {
+                const luisaMessage = document.getElementById('luisaMessage');
                 if (newAccounts.length) {
                     account = newAccounts[0];
                     if (web3) {
                         await switchToBase();
                         luisaSwapContract = new web3.eth.Contract(luisaSwapAbi, luisaSwapAddress);
-                        updateUIAfterConnect();
+                        document.getElementById('connectWalletButton').textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                        luisaMessage.innerText = getRandomMessage('accountChanged', account);
                         await updateUserInfo();
                     } else {
                         await connectWallet();
@@ -591,35 +585,23 @@
                     account = null;
                     luisaSwapContract = null;
                     resetUI();
-                    document.getElementById('luisaMessage').innerText = getRandomMessage('connectFail');
+                    luisaMessage.innerText = getRandomMessage('walletDisconnected');
                 }
             });
             window.ethereum.on('chainChanged', async (chainId) => {
+                const luisaMessage = document.getElementById('luisaMessage');
                 if (parseInt(chainId, 16) !== 8453) {
                     web3 = null;
                     account = null;
                     luisaSwapContract = null;
                     resetUI();
-                    document.getElementById('networkStatus').innerText = "Wrong network.";
-                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain!";
+                    luisaMessage.innerText = getRandomMessage('chainChangedWrong');
                 } else if (account) {
                     await connectWallet();
+                    luisaMessage.innerText = getRandomMessage('chainChangedCorrect');
                 }
             });
         }
-
-        function updateDeployButtonState() {
-            const lowName = document.getElementById('lowName').value.trim();
-            const lowSymbol = document.getElementById('lowSymbol').value.trim();
-            const midName = document.getElementById('midName').value.trim();
-            const midSymbol = document.getElementById('midSymbol').value.trim();
-            const highName = document.getElementById('highName').value.trim();
-            const highSymbol = document.getElementById('highSymbol').value.trim();
-            document.getElementById('deployLowButton').disabled = !web3 || !account || !lowName || !lowSymbol;
-            document.getElementById('deployMidButton').disabled = !web3 || !account || !midName || !midSymbol;
-            document.getElementById('deployHighButton').disabled = !web3 || !account || !highName || !highSymbol;
-        }
-
         async function updateUserInfo() {
             if (!web3 || !account || !luisaSwapContract) {
                 resetUI();
@@ -667,16 +649,14 @@
                 document.getElementById('highFees').setAttribute('data-full-address', 'Check pair');
                 document.getElementById('copyHighFeesButton').disabled = userInfo.highPair === '0x0000000000000000000000000000000000000000';
             } catch (error) {
-                document.getElementById('networkStatus').innerText = "Error fetching user info.";
+                document.getElementById('luisaMessage').innerText = "Oopsie! Couldn’t fetch your info—try again, love!";
             }
         }
-
         async function deployMemeCoin(level) {
             if (!web3 || !account || !luisaSwapContract) {
-                document.getElementById('networkStatus').innerText = "Please connect wallet.";
+                document.getElementById('luisaMessage').innerText = getRandomMessage('connectFail');
                 return;
             }
-            const status = document.getElementById('networkStatus');
             const luisaMessage = document.getElementById('luisaMessage');
             const deployButton = level === 0 ? document.getElementById('deployLowButton') : level === 1 ? document.getElementById('deployMidButton') : document.getElementById('deployHighButton');
             const nameInput = level === 0 ? document.getElementById('lowName') : level === 1 ? document.getElementById('midName') : document.getElementById('highName');
@@ -684,75 +664,67 @@
             const name = nameInput.value.trim();
             const symbol = symbolInput.value.trim();
             if (!name || !symbol) {
-                status.innerText = "Enter name and symbol.";
-                luisaMessage.innerText = "Oopsie, fill in the blanks!";
+                luisaMessage.innerText = getRandomMessage('inputMissing');
                 return;
             }
             try {
                 deployButton.disabled = true;
-                status.innerText = "Deploying...";
                 luisaMessage.innerText = getRandomMessage('deployStart');
-                const gasEstimate = await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).estimateGas({ from: account });
-                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
-                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account, gas: gasLimit });
-                status.innerText = "Meme coin deployed!";
+                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account });
                 luisaMessage.innerText = getRandomMessage('deploySuccess', symbol);
                 nameInput.disabled = true;
                 symbolInput.disabled = true;
                 await updateUserInfo();
             } catch (error) {
-                status.innerText = "Deploy failed: " + (error.message || "Unknown error");
-                luisaMessage.innerText = getRandomMessage('deployFail');
+                if (error.message.includes("User denied")) {
+                    luisaMessage.innerText = getRandomMessage('userDenied');
+                } else {
+                    luisaMessage.innerText = getRandomMessage('deployFail');
+                }
                 deployButton.disabled = false;
             }
         }
-
         async function addLiquidity(level) {
             if (!web3 || !account || !luisaSwapContract) {
-                document.getElementById('networkStatus').innerText = "Please connect wallet.";
+                document.getElementById('luisaMessage').innerText = getRandomMessage('connectFail');
                 return;
             }
-            const status = document.getElementById('networkStatus');
             const luisaMessage = document.getElementById('luisaMessage');
             const addLiquidityButton = level === 0 ? document.getElementById('addLiquidityLowButton') : level === 1 ? document.getElementById('addLiquidityMidButton') : document.getElementById('addLiquidityHighButton');
             try {
                 addLiquidityButton.disabled = true;
-                status.innerText = "Adding liquidity...";
                 luisaMessage.innerText = getRandomMessage('liquidityStart');
-                const gasEstimate = await luisaSwapContract.methods.addLiquidity(level).estimateGas({ from: account });
-                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
-                await luisaSwapContract.methods.addLiquidity(level).send({ from: account, gas: gasLimit });
-                status.innerText = "Liquidity added!";
+                await luisaSwapContract.methods.addLiquidity(level).send({ from: account });
                 luisaMessage.innerText = getRandomMessage('liquiditySuccess');
                 await updateUserInfo();
             } catch (error) {
-                status.innerText = "Add liquidity failed: " + (error.message || "Unknown error");
-                luisaMessage.innerText = getRandomMessage('liquidityFail');
+                if (error.message.includes("User denied")) {
+                    luisaMessage.innerText = getRandomMessage('userDenied');
+                } else {
+                    luisaMessage.innerText = getRandomMessage('liquidityFail');
+                }
                 addLiquidityButton.disabled = false;
             }
         }
-
         async function claimFees(level) {
             if (!web3 || !account || !luisaSwapContract) {
-                document.getElementById('networkStatus').innerText = "Please connect wallet.";
+                document.getElementById('luisaMessage').innerText = getRandomMessage('connectFail');
                 return;
             }
-            const status = document.getElementById('networkStatus');
             const luisaMessage = document.getElementById('luisaMessage');
             const claimFeesButton = level === 0 ? document.getElementById('claimFeesLowButton') : level === 1 ? document.getElementById('claimFeesMidButton') : document.getElementById('claimFeesHighButton');
             try {
                 claimFeesButton.disabled = true;
-                status.innerText = "Claiming fees...";
                 luisaMessage.innerText = getRandomMessage('claimStart');
-                const gasEstimate = await luisaSwapContract.methods.claimFees(level).estimateGas({ from: account });
-                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
-                await luisaSwapContract.methods.claimFees(level).send({ from: account, gas: gasLimit });
-                status.innerText = "Fees claimed!";
+                await luisaSwapContract.methods.claimFees(level).send({ from: account });
                 luisaMessage.innerText = getRandomMessage('claimSuccess');
                 await updateUserInfo();
             } catch (error) {
-                status.innerText = "Claim fees failed: " + (error.message || "Unknown error");
-                luisaMessage.innerText = getRandomMessage('claimFail');
+                if (error.message.includes("User denied")) {
+                    luisaMessage.innerText = getRandomMessage('userDenied');
+                } else {
+                    luisaMessage.innerText = getRandomMessage('claimFail');
+                }
                 claimFeesButton.disabled = false;
             }
         }
