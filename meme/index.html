@@ -474,7 +474,7 @@
 
         function copyToClipboard(elementId) {
             const text = document.getElementById(elementId).getAttribute('data-full-address') || document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!')).catch(err => console.error('Failed to copy:', err));
+            navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -494,13 +494,13 @@
             const connectButton = document.getElementById('connectWalletButton');
             const luisaMessage = document.getElementById('luisaMessage');
             try {
-                if (!window.ethereum) throw new Error("No wallet detected. Please install MetaMask or another wallet.");
+                if (!window.ethereum) throw new Error("No wallet detected.");
                 connectButton.disabled = true;
                 status.innerText = "Connecting...";
                 luisaMessage.innerText = getRandomMessage('connectStart');
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                if (!accounts.length) throw new Error("No accounts found. Please unlock your wallet.");
+                if (!accounts.length) throw new Error("No accounts found.");
                 account = accounts[0];
                 await switchToBase();
                 luisaSwapContract = new web3.eth.Contract(luisaSwapAbi, luisaSwapAddress);
@@ -600,8 +600,8 @@
                     account = null;
                     luisaSwapContract = null;
                     resetUI();
-                    document.getElementById('networkStatus').innerText = "Wrong network. Reconnect to Base.";
-                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain, darling! Switch to Base!";
+                    document.getElementById('networkStatus').innerText = "Wrong network.";
+                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain!";
                 } else if (account) {
                     await connectWallet();
                 }
@@ -667,7 +667,7 @@
                 document.getElementById('highFees').setAttribute('data-full-address', 'Check pair');
                 document.getElementById('copyHighFeesButton').disabled = userInfo.highPair === '0x0000000000000000000000000000000000000000';
             } catch (error) {
-                document.getElementById('networkStatus').innerText = "Error fetching user info: " + error.message;
+                document.getElementById('networkStatus').innerText = "Error fetching user info.";
             }
         }
 
@@ -684,8 +684,8 @@
             const name = nameInput.value.trim();
             const symbol = symbolInput.value.trim();
             if (!name || !symbol) {
-                status.innerText = "Please enter both name and symbol.";
-                luisaMessage.innerText = "Oopsie, darling! Fill in the blanks!";
+                status.innerText = "Enter name and symbol.";
+                luisaMessage.innerText = "Oopsie, fill in the blanks!";
                 return;
             }
             try {
@@ -693,7 +693,7 @@
                 status.innerText = "Deploying...";
                 luisaMessage.innerText = getRandomMessage('deployStart');
                 await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account });
-                status.innerText = "Meme coin deployed on Base!";
+                status.innerText = "Meme coin deployed!";
                 luisaMessage.innerText = getRandomMessage('deploySuccess', symbol);
                 nameInput.disabled = true;
                 symbolInput.disabled = true;
@@ -715,10 +715,10 @@
             const addLiquidityButton = level === 0 ? document.getElementById('addLiquidityLowButton') : level === 1 ? document.getElementById('addLiquidityMidButton') : document.getElementById('addLiquidityHighButton');
             try {
                 addLiquidityButton.disabled = true;
-                status.innerText = "Adding liquidity on Base...";
+                status.innerText = "Adding liquidity...";
                 luisaMessage.innerText = getRandomMessage('liquidityStart');
                 await luisaSwapContract.methods.addLiquidity(level).send({ from: account });
-                status.innerText = "Liquidity added on Base!";
+                status.innerText = "Liquidity added!";
                 luisaMessage.innerText = getRandomMessage('liquiditySuccess');
                 await updateUserInfo();
             } catch (error) {
@@ -738,10 +738,10 @@
             const claimFeesButton = level === 0 ? document.getElementById('claimFeesLowButton') : level === 1 ? document.getElementById('claimFeesMidButton') : document.getElementById('claimFeesHighButton');
             try {
                 claimFeesButton.disabled = true;
-                status.innerText = "Claiming fees on Base...";
+                status.innerText = "Claiming fees...";
                 luisaMessage.innerText = getRandomMessage('claimStart');
                 await luisaSwapContract.methods.claimFees(level).send({ from: account });
-                status.innerText = "Fees claimed on Base!";
+                status.innerText = "Fees claimed!";
                 luisaMessage.innerText = getRandomMessage('claimSuccess');
                 await updateUserInfo();
             } catch (error) {
