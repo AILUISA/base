@@ -316,7 +316,7 @@
         <div class="connect-section">
             <button id="connectWalletButton">Connect Wallet</button>
             <a href="https://ailuisa.github.io/base/meme/" class="deploy-meme-button">Deploy Meme</a>
-            <div id="networkStatus" class="status">Click to connect...</div>
+            <div id="networkStatus">Click to connect...</div>
         </div>
         <div class="swap-box">
             <div class="balance-row">
@@ -440,13 +440,11 @@
             setupWalletListeners();
         });
         async function connectWallet() {
-            const status = document.getElementById('networkStatus');
             const connectButton = document.getElementById('connectWalletButton');
             const luisaMessage = document.getElementById('luisaMessage');
             try {
                 if (!window.ethereum) throw new Error("No wallet detected.");
                 connectButton.disabled = true;
-                status.innerText = "Connecting...";
                 luisaMessage.innerText = getRandomMessage('connectStart');
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -455,14 +453,13 @@
                 await switchToBase();
                 router = new web3.eth.Contract(routerAbi, routerAddress);
                 factory = new web3.eth.Contract(factoryAbi, factoryAddress);
-                updateUIAfterConnect();
+                connectButton.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                luisaMessage.innerText = getRandomMessage('connectSuccess');
                 await updateBalances();
             } catch (error) {
-                status.innerText = "Failed: " + error.message;
-                luisaMessage.innerText = getRandomMessage('connectFail');
-                resetUI();
-            } finally {
                 connectButton.disabled = false;
+                connectButton.textContent = "Connect Wallet";
+                luisaMessage.innerText = getRandomMessage('connectFail');
             }
         }
         async function switchToBase() {
@@ -479,30 +476,19 @@
                 }
             }
         }
-        function updateUIAfterConnect() {
-            const connectButton = document.getElementById('connectWalletButton');
-            const status = document.getElementById('networkStatus');
-            const luisaMessage = document.getElementById('luisaMessage');
-            connectButton.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
-            status.innerText = "Connected to Base";
-            luisaMessage.innerText = getRandomMessage('connectSuccess');
-        }
-        function resetUI() {
-            const connectButton = document.getElementById('connectWalletButton');
-            const status = document.getElementById('networkStatus');
-            connectButton.textContent = "Connect Wallet";
-            status.innerText = "Click to connect...";
-        }
         function setupWalletListeners() {
             if (!window.ethereum) return;
             window.ethereum.on('accountsChanged', async (newAccounts) => {
+                const connectButton = document.getElementById('connectWalletButton');
+                const luisaMessage = document.getElementById('luisaMessage');
                 if (newAccounts.length) {
                     account = newAccounts[0];
                     if (web3) {
                         await switchToBase();
                         router = new web3.eth.Contract(routerAbi, routerAddress);
                         factory = new web3.eth.Contract(factoryAbi, factoryAddress);
-                        updateUIAfterConnect();
+                        connectButton.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                        luisaMessage.innerText = getRandomMessage('connectSuccess');
                         await updateBalances();
                     } else {
                         await connectWallet();
@@ -512,19 +498,20 @@
                     account = null;
                     router = null;
                     factory = null;
-                    resetUI();
-                    document.getElementById('luisaMessage').innerText = getRandomMessage('connectFail');
+                    connectButton.textContent = "Connect Wallet";
+                    luisaMessage.innerText = getRandomMessage('connectFail');
                 }
             });
             window.ethereum.on('chainChanged', async (chainId) => {
+                const connectButton = document.getElementById('connectWalletButton');
+                const luisaMessage = document.getElementById('luisaMessage');
                 if (parseInt(chainId, 16) !== 8453) {
                     web3 = null;
                     account = null;
                     router = null;
                     factory = null;
-                    resetUI();
-                    document.getElementById('networkStatus').innerText = "Wrong network.";
-                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain!";
+                    connectButton.textContent = "Connect Wallet";
+                    luisaMessage.innerText = "Ooh, wrong chain!";
                 } else if (account) {
                     await connectWallet();
                 }
@@ -613,7 +600,6 @@
         function switchTokens() {
             const luisaMessage = document.getElementById('luisaMessage');
             if (!toToken) {
-                document.getElementById('networkStatus').innerText = "Please select a token.";
                 luisaMessage.innerText = getRandomMessage('swapNoToken');
                 return;
             }
@@ -628,7 +614,6 @@
         function setPercentage(percentage) {
             const luisaMessage = document.getElementById('luisaMessage');
             if (!fromBalance || !web3) {
-                document.getElementById('networkStatus').innerText = "Please connect wallet.";
                 luisaMessage.innerText = getRandomMessage('connectFail');
                 return;
             }
@@ -706,32 +691,23 @@
                 swapButton.textContent = "Authorizing...";
                 swapButton.disabled = true;
                 luisaMessage.innerText = getRandomMessage('approving');
-                await tokenContract.methods.approve(routerAddress, amount).send({
-                    from: account,
-                    gas: 1320000,
-                    maxFeePerGas: "5000000000",
-                    maxPriorityFeePerGas: "0"
-                });
-                document.getElementById('networkStatus').innerText = "Token approved";
+                await tokenContract.methods.approve(routerAddress, amount).send({ from: account });
+                luisaMessage.innerText = "Tokens approved—let’s swap!";
                 isApproving = false;
                 swapButton.textContent = "Swap";
                 swapButton.disabled = false;
-                luisaMessage.innerText = "Tokens approved—let’s swap!";
             }
         }
         async function swapTokens() {
             const luisaMessage = document.getElementById('luisaMessage');
-            const status = document.getElementById('networkStatus');
             const swapButton = document.getElementById('swapButton');
             if (isApproving) return;
             if (!web3 || !account || !toToken) {
-                status.innerText = "Connect wallet and select tokens.";
                 luisaMessage.innerText = getRandomMessage('swapNoToken');
                 return;
             }
             const amountIn = document.getElementById('fromAmount').value;
             if (!amountIn || amountIn <= 0) {
-                status.innerText = "Enter a valid amount.";
                 luisaMessage.innerText = getRandomMessage('swapNoAmount');
                 return;
             }
@@ -739,7 +715,6 @@
             try {
                 amountInWei = web3.utils.toBN(web3.utils.toWei(amountIn, 'ether'));
             } catch (error) {
-                status.innerText = "Invalid amount.";
                 luisaMessage.innerText = getRandomMessage('swapNoAmount');
                 return;
             }
@@ -747,7 +722,6 @@
                 const tokenContract = new web3.eth.Contract(erc20Abi, fromToken.address);
                 const tokenBalance = await tokenContract.methods.balanceOf(account).call();
                 if (web3.utils.toBN(tokenBalance).lt(amountInWei)) {
-                    status.innerText = "Insufficient balance.";
                     luisaMessage.innerText = "Not enough tokens!";
                     return;
                 }
@@ -771,7 +745,6 @@
                     }
                 }
                 if (bestOutput.eq(web3.utils.toBN('0')) || !routes) {
-                    status.innerText = "No trading pair found.";
                     luisaMessage.innerText = getRandomMessage('calcFail');
                     return;
                 }
@@ -785,58 +758,38 @@
                 const reserveToBN = web3.utils.toBN(reserveTo);
                 const priceImpact = amountInWei.mul(web3.utils.toBN(100)).div(reserveFromBN.add(amountInWei));
                 if (priceImpact.gt(web3.utils.toBN(maxPriceImpact * 100))) {
-                    status.innerText = `Price impact too high (${priceImpact.toString()}%).`;
                     luisaMessage.innerText = getRandomMessage('highPriceImpact');
                     return;
                 }
                 if (bestOutput.gt(reserveToBN)) {
-                    status.innerText = `Insufficient liquidity.`;
                     luisaMessage.innerText = getRandomMessage('insufficientLiquidity');
                     return;
                 }
                 const slippageFactor = web3.utils.toBN(1000 - defaultSlippage * 1000);
                 const amountOutMin = bestOutput.mul(slippageFactor).div(web3.utils.toBN(1000));
                 swapButton.disabled = true;
-                status.innerText = "Processing swap...";
                 luisaMessage.innerText = getRandomMessage('swapStart');
                 if (!fromToken.isNative) {
                     await approveToken(fromToken.address, amountInWei);
                 }
                 if (fromToken.isNative) {
-                    await router.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin.toString(), routes, account, deadline).send({
-                        from: account,
-                        value: amountInWei,
-                        gas: 1320000,
-                        maxFeePerGas: "5000000000",
-                        maxPriorityFeePerGas: "0"
-                    });
+                    await router.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin.toString(), routes, account, deadline).send({ from: account, value: amountInWei });
                 } else {
-                    await router.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(amountInWei.toString(), amountOutMin.toString(), routes, account, deadline).send({
-                        from: account,
-                        gas: 1320000,
-                        maxFeePerGas: "5000000000",
-                        maxPriorityFeePerGas: "0"
-                    });
+                    await router.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(amountInWei.toString(), amountOutMin.toString(), routes, account, deadline).send({ from: account });
                 }
-                status.innerText = "Swap successful!";
                 luisaMessage.innerText = getRandomMessage('swapSuccess');
                 document.getElementById('fromAmount').value = '';
                 await updateBalances();
             } catch (error) {
-                let errorMessage = error.message || "Unknown error";
                 if (error.message.includes("User denied")) {
-                    errorMessage = "User denied transaction.";
                     luisaMessage.innerText = getRandomMessage('userDenied');
                 } else if (error.message.includes("INSUFFICIENT_OUTPUT_AMOUNT") || error.message.includes("EXCESSIVE_INPUT_AMOUNT")) {
-                    errorMessage = "Swap failed: Price impact too high.";
                     luisaMessage.innerText = "Swap failed—too much impact!";
                 } else if (error.message.includes("INSUFFICIENT_LIQUIDITY")) {
-                    errorMessage = "Swap failed: Insufficient liquidity.";
                     luisaMessage.innerText = getRandomMessage('insufficientLiquidity');
                 } else {
                     luisaMessage.innerText = getRandomMessage('swapFail');
                 }
-                status.innerText = errorMessage;
             } finally {
                 swapButton.disabled = false;
             }
