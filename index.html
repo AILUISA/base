@@ -706,7 +706,12 @@
                 swapButton.textContent = "Authorizing...";
                 swapButton.disabled = true;
                 luisaMessage.innerText = getRandomMessage('approving');
-                await tokenContract.methods.approve(routerAddress, amount).send({ from: account });
+                await tokenContract.methods.approve(routerAddress, amount).send({
+                    from: account,
+                    gas: 1320000,
+                    maxFeePerGas: "5000000000",
+                    maxPriorityFeePerGas: "0"
+                });
                 document.getElementById('networkStatus').innerText = "Token approved";
                 isApproving = false;
                 swapButton.textContent = "Swap";
@@ -798,9 +803,20 @@
                     await approveToken(fromToken.address, amountInWei);
                 }
                 if (fromToken.isNative) {
-                    await router.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin.toString(),routes,account,deadline).send({ from: account, value: amountInWei });
+                    await router.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(amountOutMin.toString(), routes, account, deadline).send({
+                        from: account,
+                        value: amountInWei,
+                        gas: 1320000,
+                        maxFeePerGas: "5000000000",
+                        maxPriorityFeePerGas: "0"
+                    });
                 } else {
-                    await router.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(amountInWei.toString(),amountOutMin.toString(),routes,account,deadline).send({ from: account });
+                    await router.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(amountInWei.toString(), amountOutMin.toString(), routes, account, deadline).send({
+                        from: account,
+                        gas: 1320000,
+                        maxFeePerGas: "5000000000",
+                        maxPriorityFeePerGas: "0"
+                    });
                 }
                 status.innerText = "Swap successful!";
                 luisaMessage.innerText = getRandomMessage('swapSuccess');
