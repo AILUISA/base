@@ -521,11 +521,11 @@
             if (!web3 || !account) return;
             if (fromToken.isNative) {
                 fromBalance = await web3.eth.getBalance(account);
-                document.getElementById('fromBalance').innerText = `Balance: ${web3.utils.fromWei(fromBalance, 'ether')}`;
+                document.getElementById('fromBalance').innerText = `Balance: ${parseFloat(web3.utils.fromWei(fromBalance, 'ether')).toFixed(18)}`;
             } else {
                 const tokenContract = new web3.eth.Contract(erc20Abi, fromToken.address);
                 fromBalance = await tokenContract.methods.balanceOf(account).call();
-                document.getElementById('fromBalance').innerText = `Balance: ${web3.utils.fromWei(fromBalance, 'ether')}`;
+                document.getElementById('fromBalance').innerText = `Balance: ${parseFloat(web3.utils.fromWei(fromBalance, 'ether')).toFixed(18)}`;
             }
             if (toToken) {
                 let toBalance;
@@ -535,7 +535,7 @@
                     const toTokenContract = new web3.eth.Contract(erc20Abi, toToken.address);
                     toBalance = await toTokenContract.methods.balanceOf(account).call();
                 }
-                document.getElementById('toBalance').innerText = `Balance: ${web3.utils.fromWei(toBalance, 'ether')}`;
+                document.getElementById('toBalance').innerText = `Balance: ${parseFloat(web3.utils.fromWei(toBalance, 'ether')).toFixed(18)}`;
             }
         }
         function showTokenModal(type) {
@@ -623,10 +623,11 @@
                 if (fromToken.isNative) {
                     amount = Math.max(0, amount - 0.0001);
                 }
+                document.getElementById('fromAmount').value = amount.toFixed(18);
             } else {
-                amount = web3.utils.fromWei(fromBalance, 'ether') * (percentage / 100);
+                amount = parseFloat(web3.utils.fromWei(fromBalance, 'ether')) * (percentage / 100);
+                document.getElementById('fromAmount').value = amount.toFixed(18);
             }
-            document.getElementById('fromAmount').value = amount.toString();
             luisaMessage.innerText = getRandomMessage('setPercentage', percentage);
             calculateOutput();
         }
