@@ -18,7 +18,7 @@
             --border-radius: 15px;
         }
         * {
-            box-sizing: box-box;
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
@@ -51,6 +51,11 @@
             margin-bottom: 20px;
             color: var(--text-color);
         }
+        .connect-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Consistent spacing between buttons */
+        }
         .connect-section button {
             padding: 12px;
             background: var(--primary-color);
@@ -61,7 +66,6 @@
             font-weight: bold;
             width: 100%;
             transition: background 0.2s;
-            margin-bottom: 10px;
         }
         .connect-section button:hover { background: #ff85c2; }
         .deploy-meme-button {
@@ -74,10 +78,9 @@
             font-weight: bold;
             width: 100%;
             transition: background 0.2s;
-            margin-bottom: 10px;
             text-align: center;
-            display: inline-block;
             text-decoration: none;
+            display: block; /* Ensure it behaves like a block element */
         }
         .deploy-meme-button:hover { background: #d93392; }
         .swap-box {
