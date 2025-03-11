@@ -444,13 +444,13 @@
             const connectButton = document.getElementById('connectWalletButton');
             const luisaMessage = document.getElementById('luisaMessage');
             try {
-                if (!window.ethereum) throw new Error("No wallet detected. Please install MetaMask or another wallet.");
+                if (!window.ethereum) throw new Error("No wallet detected.");
                 connectButton.disabled = true;
                 status.innerText = "Connecting...";
                 luisaMessage.innerText = getRandomMessage('connectStart');
                 web3 = new Web3(window.ethereum);
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                if (!accounts.length) throw new Error("No accounts found. Please unlock your wallet.");
+                if (!accounts.length) throw new Error("No accounts found.");
                 account = accounts[0];
                 await switchToBase();
                 router = new web3.eth.Contract(routerAbi, routerAddress);
@@ -523,8 +523,8 @@
                     router = null;
                     factory = null;
                     resetUI();
-                    document.getElementById('networkStatus').innerText = "Wrong network. Reconnect to Base.";
-                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain, darling! Switch to Base!";
+                    document.getElementById('networkStatus').innerText = "Wrong network.";
+                    document.getElementById('luisaMessage').innerText = "Ooh, wrong chain!";
                 } else if (account) {
                     await connectWallet();
                 }
@@ -555,7 +555,7 @@
             const modal = document.getElementById('tokenModal');
             const tokenList = document.getElementById('tokenList');
             const luisaMessage = document.getElementById('luisaMessage');
-            tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><span>Enter a token address to search...</span></div>';
+            tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><span>Enter a token address...</span></div>';
             modal.style.display = 'block';
             luisaMessage.innerText = getRandomMessage('tokenModal');
             modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
@@ -566,12 +566,12 @@
             const luisaMessage = document.getElementById('luisaMessage');
             tokenList.innerHTML = '';
             if (!searchTerm || !web3) {
-                tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><span>Enter a token address to search...</span></div>';
+                tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><span>Enter a token address...</span></div>';
                 return;
             }
             if (web3.utils.isAddress(searchTerm)) {
                 tokenList.innerHTML = `<div class="token-item"><span>Searching...</span><span class="spinner"></span></div>`;
-                luisaMessage.innerText = "Ooh, checking that address on Base, darling!";
+                luisaMessage.innerText = "Ooh, checking that address!";
                 try {
                     const tokenContract = new web3.eth.Contract(erc20Abi, searchTerm);
                     const symbol = await tokenContract.methods.symbol().call();
@@ -584,12 +584,12 @@
                     tokenList.appendChild(div);
                     luisaMessage.innerText = getRandomMessage('selectToken', token.symbol);
                 } catch (error) {
-                    tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><div class="placeholder" style="background: var(--accent-color);">?</div><span>No valid token found</span></div>';
-                    luisaMessage.innerText = "Oopsie! That’s not a token I can use on Base, love!";
+                    tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><div class="placeholder" style="background: var(--accent-color);">?</div><span>No valid token</span></div>';
+                    luisaMessage.innerText = "Oopsie! Not a token!";
                 }
             } else {
                 tokenList.innerHTML = '<div class="token-item" style="cursor: default;"><div class="placeholder" style="background: var(--accent-color);">?</div><span>Invalid address</span></div>';
-                luisaMessage.innerText = "Hmm, that’s not a valid address on Base, darling!";
+                luisaMessage.innerText = "Hmm, invalid address!";
             }
         }
         function selectToken(token, type) {
@@ -613,7 +613,7 @@
         function switchTokens() {
             const luisaMessage = document.getElementById('luisaMessage');
             if (!toToken) {
-                document.getElementById('networkStatus').innerText = "Please select a token to swap to on Base.";
+                document.getElementById('networkStatus').innerText = "Please select a token.";
                 luisaMessage.innerText = getRandomMessage('swapNoToken');
                 return;
             }
@@ -628,18 +628,18 @@
         function setPercentage(percentage) {
             const luisaMessage = document.getElementById('luisaMessage');
             if (!fromBalance || !web3) {
-                document.getElementById('networkStatus').innerText = "Please connect wallet first on Base.";
+                document.getElementById('networkStatus').innerText = "Please connect wallet.";
                 luisaMessage.innerText = getRandomMessage('connectFail');
                 return;
             }
             let amount;
             if (percentage === 100) {
-                amount = web3.utils.fromWei(fromBalance, 'ether');
+                amount = parseFloat(web3.utils.fromWei(fromBalance, 'ether'));
+                if (fromToken.isNative) {
+                    amount = Math.max(0, amount - 0.0001);
+                }
             } else {
                 amount = web3.utils.fromWei(fromBalance, 'ether') * (percentage / 100);
-            }
-            if (percentage === 100 && fromToken.isNative) {
-                amount = Math.max(0, amount - 0.01);
             }
             document.getElementById('fromAmount').value = amount.toString();
             luisaMessage.innerText = getRandomMessage('setPercentage', percentage);
@@ -651,62 +651,48 @@
             const luisaMessage = document.getElementById('luisaMessage');
             if (!web3 || !account || !toToken || !amountIn || amountIn <= 0) {
                 swapNote.innerHTML = 'Amount automatically calculated by LuisaSwap';
-                return { success: false, message: 'Invalid input or missing connection' };
+                return { success: false };
             }
             let amountInWei;
             try {
                 amountInWei = web3.utils.toBN(web3.utils.toWei(amountIn, 'ether'));
             } catch (error) {
-                swapNote.innerHTML = 'Invalid amount entered.';
+                swapNote.innerHTML = 'Invalid amount.';
                 luisaMessage.innerText = getRandomMessage('swapNoAmount');
-                return { success: false, message: 'Invalid amount entered' };
+                return { success: false };
             }
             swapNote.innerHTML = `Estimated output: <span class="spinner"></span>`;
             luisaMessage.innerText = getRandomMessage('calcStart');
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error("Calculation timeout")), 10000);
-            });
             try {
-                const calcPromise = (async () => {
-                    let bestOutput = web3.utils.toBN('0');
-                    let bestRoute = null;
-                    const pairChecks = [];
-                    for (const stable of [true, false]) {
-                        const pairAddress = await factory.methods.getPair(fromToken.address, toToken.address, stable).call();
-                        pairChecks.push({ stable, pairAddress });
-                    }
-                    for (const { stable, pairAddress } of pairChecks) {
-                        if (pairAddress !== '0x0000000000000000000000000000000000000000') {
-                            const routes = [{ from: fromToken.address, to: toToken.address, stable }];
-                            const amounts = await router.methods.getAmountsOut(amountInWei, routes).call();
-                            const output = web3.utils.toBN(amounts[amounts.length - 1]);
-                            if (output.gt(bestOutput)) {
-                                bestOutput = output;
-                                bestRoute = routes;
-                            }
+                let bestOutput = web3.utils.toBN('0');
+                let bestRoute = null;
+                const pairChecks = [];
+                for (const stable of [true, false]) {
+                    const pairAddress = await factory.methods.getPair(fromToken.address, toToken.address, stable).call();
+                    pairChecks.push({ stable, pairAddress });
+                }
+                for (const { stable, pairAddress } of pairChecks) {
+                    if (pairAddress !== '0x0000000000000000000000000000000000000000') {
+                        const routes = [{ from: fromToken.address, to: toToken.address, stable }];
+                        const amounts = await router.methods.getAmountsOut(amountInWei, routes).call();
+                        const output = web3.utils.toBN(amounts[amounts.length - 1]);
+                        if (output.gt(bestOutput)) {
+                            bestOutput = output;
+                            bestRoute = routes;
                         }
                     }
-                    if (bestOutput.eq(web3.utils.toBN('0'))) {
-                        throw new Error("No valid trading pair found");
-                    }
-                    const outputEther = parseFloat(web3.utils.fromWei(bestOutput, 'ether'));
-                    swapNote.innerHTML = `Estimated output: ${outputEther.toFixed(6)} ${toToken.symbol}`;
-                    luisaMessage.innerText = getRandomMessage('calcSuccess', outputEther.toFixed(2), toToken.symbol);
-                    return { success: true, estimatedOutput: outputEther, symbol: toToken.symbol };
-                })();
-                return await Promise.race([calcPromise, timeoutPromise]);
-            } catch (error) {
-                let errorMessage = "Error calculating output.";
-                if (error.message.includes("No valid trading pair found")) {
-                    errorMessage = "No trading pair available for these tokens on Base.";
-                } else if (error.message.includes("Calculation timeout")) {
-                    errorMessage = "Calculation took too long on Base. Try again.";
-                } else if (error.message.includes("execution reverted")) {
-                    errorMessage = "Blockchain error on Base: Transaction reverted.";
                 }
-                swapNote.innerHTML = errorMessage;
+                if (bestOutput.eq(web3.utils.toBN('0'))) {
+                    throw new Error("No valid pair");
+                }
+                const outputEther = parseFloat(web3.utils.fromWei(bestOutput, 'ether'));
+                swapNote.innerHTML = `Estimated output: ${outputEther.toFixed(6)} ${toToken.symbol}`;
+                luisaMessage.innerText = getRandomMessage('calcSuccess', outputEther.toFixed(2), toToken.symbol);
+                return { success: true, estimatedOutput: outputEther, symbol: toToken.symbol };
+            } catch (error) {
+                swapNote.innerHTML = "No trading pair available.";
                 luisaMessage.innerText = getRandomMessage('calcFail');
-                return { success: false, message: errorMessage };
+                return { success: false };
             }
         }
         async function approveToken(tokenAddress, amount) {
@@ -721,11 +707,11 @@
                 swapButton.disabled = true;
                 luisaMessage.innerText = getRandomMessage('approving');
                 await tokenContract.methods.approve(routerAddress, amount).send({ from: account });
-                document.getElementById('networkStatus').innerText = "Token approved on Base";
+                document.getElementById('networkStatus').innerText = "Token approved";
                 isApproving = false;
                 swapButton.textContent = "Swap";
                 swapButton.disabled = false;
-                luisaMessage.innerText = "Ooh, tokens approved on Base—let’s swap, darling!";
+                luisaMessage.innerText = "Tokens approved—let’s swap!";
             }
         }
         async function swapTokens() {
@@ -734,13 +720,13 @@
             const swapButton = document.getElementById('swapButton');
             if (isApproving) return;
             if (!web3 || !account || !toToken) {
-                status.innerText = "Please connect wallet and select tokens on Base.";
+                status.innerText = "Connect wallet and select tokens.";
                 luisaMessage.innerText = getRandomMessage('swapNoToken');
                 return;
             }
             const amountIn = document.getElementById('fromAmount').value;
             if (!amountIn || amountIn <= 0) {
-                status.innerText = "Please enter a valid amount on Base.";
+                status.innerText = "Enter a valid amount.";
                 luisaMessage.innerText = getRandomMessage('swapNoAmount');
                 return;
             }
@@ -748,7 +734,7 @@
             try {
                 amountInWei = web3.utils.toBN(web3.utils.toWei(amountIn, 'ether'));
             } catch (error) {
-                status.innerText = "Invalid amount entered on Base.";
+                status.innerText = "Invalid amount.";
                 luisaMessage.innerText = getRandomMessage('swapNoAmount');
                 return;
             }
@@ -756,8 +742,8 @@
                 const tokenContract = new web3.eth.Contract(erc20Abi, fromToken.address);
                 const tokenBalance = await tokenContract.methods.balanceOf(account).call();
                 if (web3.utils.toBN(tokenBalance).lt(amountInWei)) {
-                    status.innerText = "Insufficient token balance on Base.";
-                    luisaMessage.innerText = "Ooh, not enough tokens on Base, sweetie—let’s adjust!";
+                    status.innerText = "Insufficient balance.";
+                    luisaMessage.innerText = "Not enough tokens!";
                     return;
                 }
             }
@@ -780,7 +766,7 @@
                     }
                 }
                 if (bestOutput.eq(web3.utils.toBN('0')) || !routes) {
-                    status.innerText = "No valid trading pair found on Base.";
+                    status.innerText = "No trading pair found.";
                     luisaMessage.innerText = getRandomMessage('calcFail');
                     return;
                 }
@@ -794,19 +780,19 @@
                 const reserveToBN = web3.utils.toBN(reserveTo);
                 const priceImpact = amountInWei.mul(web3.utils.toBN(100)).div(reserveFromBN.add(amountInWei));
                 if (priceImpact.gt(web3.utils.toBN(maxPriceImpact * 100))) {
-                    status.innerText = `Price impact too high on Base (${priceImpact.toString()}%).`;
+                    status.innerText = `Price impact too high (${priceImpact.toString()}%).`;
                     luisaMessage.innerText = getRandomMessage('highPriceImpact');
                     return;
                 }
                 if (bestOutput.gt(reserveToBN)) {
-                    status.innerText = `Insufficient liquidity in pool on Base.`;
+                    status.innerText = `Insufficient liquidity.`;
                     luisaMessage.innerText = getRandomMessage('insufficientLiquidity');
                     return;
                 }
                 const slippageFactor = web3.utils.toBN(1000 - defaultSlippage * 1000);
                 const amountOutMin = bestOutput.mul(slippageFactor).div(web3.utils.toBN(1000));
                 swapButton.disabled = true;
-                status.innerText = "Processing swap on Base...";
+                status.innerText = "Processing swap...";
                 luisaMessage.innerText = getRandomMessage('swapStart');
                 if (!fromToken.isNative) {
                     await approveToken(fromToken.address, amountInWei);
@@ -816,20 +802,20 @@
                 } else {
                     await router.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(amountInWei.toString(),amountOutMin.toString(),routes,account,deadline).send({ from: account });
                 }
-                status.innerText = "Swap successful on Base!";
+                status.innerText = "Swap successful!";
                 luisaMessage.innerText = getRandomMessage('swapSuccess');
                 document.getElementById('fromAmount').value = '';
                 await updateBalances();
             } catch (error) {
                 let errorMessage = error.message || "Unknown error";
-                if (error.message.includes("User denied transaction signature")) {
-                    errorMessage = "User denied transaction signature on Base.";
+                if (error.message.includes("User denied")) {
+                    errorMessage = "User denied transaction.";
                     luisaMessage.innerText = getRandomMessage('userDenied');
                 } else if (error.message.includes("INSUFFICIENT_OUTPUT_AMOUNT") || error.message.includes("EXCESSIVE_INPUT_AMOUNT")) {
-                    errorMessage = "Swap failed on Base: Price impact or slippage too high.";
-                    luisaMessage.innerText = "Ooh, swap failed on Base—too much impact, darling!";
+                    errorMessage = "Swap failed: Price impact too high.";
+                    luisaMessage.innerText = "Swap failed—too much impact!";
                 } else if (error.message.includes("INSUFFICIENT_LIQUIDITY")) {
-                    errorMessage = "Swap failed on Base: Insufficient liquidity in the pool.";
+                    errorMessage = "Swap failed: Insufficient liquidity.";
                     luisaMessage.innerText = getRandomMessage('insufficientLiquidity');
                 } else {
                     luisaMessage.innerText = getRandomMessage('swapFail');
