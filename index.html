@@ -405,6 +405,7 @@
         let isApproving = false;
         const defaultSlippage = 0.005;
         const maxPriceImpact = 0.5;
+        const gasReserve = web3.utils.toWei('0.001', 'ether'); // 预留 0.001 ETH 作为 Gas 费用
         const luisaMessages = {
             connectStart: ["Ooh, let’s dive in! Connecting to Base—hold my hand, sweetie!","Hey, darling! Unlocking your wallet for some Base fun!","Excited? I’m linking us to Base—stay with me!","Oh, let’s sparkle! Connecting your wallet now, love!"],
             connectSuccess: ["Yay! We’re in, gorgeous! Time to shine on Base!","Wow, connected, darling! Ready to swap with flair!","Splendid! Wallet’s linked—let’s dance through Base!","Fantastic, sweetie! We’re set to explore Base together!"],
@@ -425,7 +426,7 @@
             insufficientLiquidity: ["Oh no, darling! Pool’s too shallow on Base—try a smaller swap!","Oopsie! Not enough liquidity on Base—scale down, love!","Hmm, pool’s dry on Base—let’s try a tinier trade, sweetie!","Yikes! Liquidity’s low on Base—reduce it, my dear, let’s shine!"],
             approving: ["Ooh, approving your tokens on Base—stay elegant, darling!","Hey, love! Setting up approval on Base—almost there, sweetie!","Excited? Authorizing now on Base—keep the vibe, my dear!","Let’s glow! Approving your trade on Base, darling—hang on!"],
             userDenied: ["Oh no, darling! You dodged me on Base—approve next time, please!","Oopsie! No swap today on Base? Let’s try again, love!","Hmm, rejected on Base? Give me a chance next time, sweetie!","Yikes! You said no on Base—let’s sparkle later, dear!"],
-            highGas: ["Ooh, darling! Gas fees might be high on Base—check MetaMask before confirming!","Hey, love! Gas looks a bit steep on Base—adjust it if needed, sweetie!","Hmm, Gas fees seem high on Base—review in MetaMask, my dear!","Yikes! Gas might cost a bit on Base—double-check, darling!"]
+            highGas: ["Ooh, darling! Gas fees might be high on Base—set to 0.002-0.003 Gwei in MetaMask!","Hey, love! Gas looks steep on Base—adjust to 0.002-0.003 Gwei, sweetie!","Hmm, Gas fees seem high on Base—try 0.002-0.003 Gwei in MetaMask, my dear!","Yikes! Gas is pricey on Base—lower to 0.002-0.003 Gwei, darling!"]
         };
         function getRandomMessage(type, param1, param2) {
             const messages = luisaMessages[type];
@@ -546,7 +547,7 @@
                 if (toToken.isNative) {
                     toBalance = await web3.eth.getBalance(account);
                 } else {
-                    const toTokenContract = new web3.eth.Contract(erc.Project: LuisaSwap - Swap on Base
+                    const toTokenContract = new web3.eth.Contract(erc20Abi, toToken.address);
                     toBalance = await toTokenContract.methods.balanceOf(account).call();
                 }
                 document.getElementById('toBalance').innerText = `Balance: ${web3.utils.fromWei(toBalance, 'ether')}`;
@@ -633,14 +634,11 @@
                 luisaMessage.innerText = getRandomMessage('connectFail');
                 return;
             }
-            let amount;
+            let amount = web3.utils.fromWei(fromBalance, 'ether');
             if (percentage === 100) {
-                amount = web3.utils.fromWei(fromBalance, 'ether');
+                amount = Math.max(0, amount - 0.001);
             } else {
-                amount = web3.utils.fromWei(fromBalance, 'ether') * (percentage / 100);
-            }
-            if (percentage === 100 && fromToken.isNative) {
-                amount = Math.max(0, amount - 0.01);
+                amount = amount * (percentage / 100);
             }
             document.getElementById('fromAmount').value = amount.toString();
             luisaMessage.innerText = getRandomMessage('setPercentage', percentage);
@@ -713,10 +711,11 @@
         async function estimateGas(method, options) {
             try {
                 const gasEstimate = await method.estimateGas(options);
-                const gasPrice = await web3.eth.getGasPrice();
-                const gasCostInWei = web3.utils.toBN(gasEstimate).mul(web3.utils.toBN(gasPrice));
+                //
+                const suggestedGasPrice = web3.utils.toWei('0.0025', 'gwei');
+                const gasCostInWei = web3.utils.toBN(gasEstimate).mul(web3.utils.toBN(suggestedGasPrice));
                 const gasCostInEth = web3.utils.fromWei(gasCostInWei, 'ether');
-                return { gasEstimate, gasCostInEth };
+                return { gasEstimate, gasCostInEth, suggestedGasPrice };
             } catch (error) {
                 return { error: "Gas estimation failed: " + error.message };
             }
@@ -743,7 +742,7 @@
                     swapButton.disabled = false;
                     return;
                 }
-                if (parseFloat(gasEstimate.gasCostInEth) > 0.01) {
+                if (parseFloat(gasEstimate.gasCostInEth) > 0.001) { // More than 0.001 ETH Tips
                     luisaMessage.innerText = getRandomMessage('highGas');
                 }
                 await method.send({ from: account });
@@ -838,7 +837,7 @@
                         swapButton.disabled = false;
                         return;
                     }
-                    if (parseFloat(gasEstimate.gasCostInEth) > 0.01) {
+                    if (parseFloat(gasEstimate.gasCostInEth) > 0.001) {
                         luisaMessage.innerText = getRandomMessage('highGas');
                     }
                     await method.send({ from: account, value: amountInWei });
@@ -851,7 +850,7 @@
                         swapButton.disabled = false;
                         return;
                     }
-                    if (parseFloat(gasEstimate.gasCostInEth) > 0.01) {
+                    if (parseFloat(gasEstimate.gasCostInEth) > 0.001) {
                         luisaMessage.innerText = getRandomMessage('highGas');
                     }
                     await method.send({ from: account });
