@@ -18,7 +18,7 @@
             --border-radius: 15px;
         }
         * {
-            box-sizing: border-box;
+            box-sizing: box-box;
             margin: 0;
             padding: 0;
         }
@@ -583,13 +583,15 @@
             const luisaMessage = document.getElementById('luisaMessage');
             if (type === 'to') {
                 toToken = token;
-                document.getElementById('toToken').innerHTML = `<div><div class="placeholder" style="background: var(--accent-color);">?</div><span>${token.symbol}</span></div><span>▼</span>`;
+                document.getElementById('toToken').innerHTML = `<div>${toToken.address === ethToken.address ? '<img src="images/eth.png" alt="ETH">' : '<div class="placeholder">?</div>'}<span>${toToken.symbol}</span></div><span>▼</span>`;
                 if (isFromEth) {
                     fromToken = ethToken;
+                    document.getElementById('fromToken').innerHTML = `<div><img src="images/eth.png" alt="ETH"><span id="fromTokenSymbol">${fromToken.symbol}</span></div><span></span>`;
                 } else {
                     fromToken = token;
                     toToken = ethToken;
-                    document.getElementById('fromToken').innerHTML = `<div><div class="placeholder" style="background: var(--accent-color);">?</div><span id="fromTokenSymbol">${fromToken.symbol}</span></div><span></span>`;
+                    document.getElementById('fromToken').innerHTML = `<div>${fromToken.address === ethToken.address ? '<img src="images/eth.png" alt="ETH">' : '<div class="placeholder">?</div>'}<span id="fromTokenSymbol">${fromToken.symbol}</span></div><span></span>`;
+                    document.getElementById('toToken').innerHTML = `<div><img src="images/eth.png" alt="ETH"><span>${toToken.symbol}</span></div><span>▼</span>`;
                 }
             }
             document.getElementById('tokenModal').style.display = 'none';
@@ -605,8 +607,8 @@
             }
             isFromEth = !isFromEth;
             [fromToken, toToken] = [toToken, fromToken];
-            document.getElementById('fromToken').innerHTML = `<div><div class="placeholder" style="background: var(--accent-color);">?</div><span id="fromTokenSymbol">${fromToken.symbol}</span></div><span></span>`;
-            document.getElementById('toToken').innerHTML = `<div><div class="placeholder" style="background: var(--accent-color);">?</div><span>${toToken.symbol}</span></div><span>▼</span>`;
+            document.getElementById('fromToken').innerHTML = `<div>${fromToken.address === ethToken.address ? '<img src="images/eth.png" alt="ETH">' : '<div class="placeholder">?</div>'}<span id="fromTokenSymbol">${fromToken.symbol}</span></div><span></span>`;
+            document.getElementById('toToken').innerHTML = `<div>${toToken.address === ethToken.address ? '<img src="images/eth.png" alt="ETH">' : '<div class="placeholder">?</div>'}<span>${toToken.symbol}</span></div><span>▼</span>`;
             luisaMessage.innerText = getRandomMessage('switchTokens');
             updateBalances();
             calculateOutput();
