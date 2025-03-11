@@ -692,7 +692,9 @@
                 deployButton.disabled = true;
                 status.innerText = "Deploying...";
                 luisaMessage.innerText = getRandomMessage('deployStart');
-                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account });
+                const gasEstimate = await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).estimateGas({ from: account });
+                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
+                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account, gas: gasLimit });
                 status.innerText = "Meme coin deployed!";
                 luisaMessage.innerText = getRandomMessage('deploySuccess', symbol);
                 nameInput.disabled = true;
@@ -717,7 +719,9 @@
                 addLiquidityButton.disabled = true;
                 status.innerText = "Adding liquidity...";
                 luisaMessage.innerText = getRandomMessage('liquidityStart');
-                await luisaSwapContract.methods.addLiquidity(level).send({ from: account });
+                const gasEstimate = await luisaSwapContract.methods.addLiquidity(level).estimateGas({ from: account });
+                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
+                await luisaSwapContract.methods.addLiquidity(level).send({ from: account, gas: gasLimit });
                 status.innerText = "Liquidity added!";
                 luisaMessage.innerText = getRandomMessage('liquiditySuccess');
                 await updateUserInfo();
@@ -740,7 +744,9 @@
                 claimFeesButton.disabled = true;
                 status.innerText = "Claiming fees...";
                 luisaMessage.innerText = getRandomMessage('claimStart');
-                await luisaSwapContract.methods.claimFees(level).send({ from: account });
+                const gasEstimate = await luisaSwapContract.methods.claimFees(level).estimateGas({ from: account });
+                const gasLimit = Math.min(Math.max(gasEstimate, 1320000), 1400000);
+                await luisaSwapContract.methods.claimFees(level).send({ from: account, gas: gasLimit });
                 status.innerText = "Fees claimed!";
                 luisaMessage.innerText = getRandomMessage('claimSuccess');
                 await updateUserInfo();
