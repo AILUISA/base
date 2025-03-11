@@ -692,11 +692,7 @@
                 deployButton.disabled = true;
                 status.innerText = "Deploying...";
                 luisaMessage.innerText = getRandomMessage('deployStart');
-                let value = web3.utils.toWei('0', 'ether');
-                if (level === 0) value = web3.utils.toWei('1', 'ether');
-                else if (level === 1) value = web3.utils.toWei('10', 'ether');
-                else if (level === 2) value = web3.utils.toWei('100', 'ether');
-                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account, value });
+                await luisaSwapContract.methods.deployMemeCoin(name, symbol, level).send({ from: account });
                 status.innerText = "Meme coin deployed on Base!";
                 luisaMessage.innerText = getRandomMessage('deploySuccess', symbol);
                 nameInput.disabled = true;
@@ -752,21 +748,6 @@
                 status.innerText = "Claim fees failed: " + (error.message || "Unknown error");
                 luisaMessage.innerText = getRandomMessage('claimFail');
                 claimFeesButton.disabled = false;
-            }
-        }
-
-        async function estimateGas(method, options) {
-            try {
-                const gasEstimate = await method.estimateGas(options);
-                const suggestedGasPrice = web3.utils.toWei('0.0025', 'gwei');
-                const gasCostInWei = web3.utils.toBN(gasEstimate).mul(web3.utils.toBN(suggestedGasPrice));
-                const gasCostInEth = web3.utils.fromWei(gasCostInWei, 'ether');
-                if (parseFloat(gasCostInEth) > 0.001) {
-                    document.getElementById('luisaMessage').innerText = "Ooh, darling! Gas fees might be high—set to 0.002-0.003 Gwei in MetaMask!";
-                }
-                return { gasEstimate, gasCostInEth };
-            } catch (error) {
-                return { error: "Gas estimation failed: " + error.message };
             }
         }
     </script>
